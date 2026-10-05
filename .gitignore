@@ -1,0 +1,11 @@
+# Visual Studio local settings and caches
+.vs/
+*.user
+*.suo
+
+# Build output directories
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+Win32/
