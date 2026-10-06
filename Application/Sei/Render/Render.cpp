@@ -169,6 +169,12 @@ namespace Sei::Render
         swapChain->Present(1, 0);
     }
 
+    void Draw(const Mesh& mesh, const Shader& shader, const Camera& camera)
+    {
+        // This overload draws a mesh at the world origin.
+        Draw(mesh, shader, camera.GetViewMatrix() * camera.GetProjectionMatrix());
+    }
+
     void Shutdown()
     {
         // release/cleanup

@@ -1,4 +1,5 @@
 #include "Window.h"
+#include "../Input/Input.h"
 
 namespace Sei::Window
 {
@@ -12,6 +13,7 @@ namespace Sei::Window
 
         LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
+            Input::ProcessMessage(hwnd, message, wParam, lParam);
             switch (message)
             {
             case WM_DESTROY:

@@ -140,12 +140,18 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Sei\Camera\Camera.cpp" />
+    <ClCompile Include="Sei\Camera\FreeCameraController.cpp" />
+    <ClCompile Include="Sei\Input\Input.cpp" />
     <ClCompile Include="Sei\AssetLoader\ObjLoader.cpp" />
     <ClCompile Include="Sei\Render\Render.cpp" />
     <ClCompile Include="Sei\Window\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Sei\AssetLoader\OBJLoader.h" />
+    <ClInclude Include="Sei\Camera\Camera.h" />
+    <ClInclude Include="Sei\Camera\FreeCameraController.h" />
+    <ClInclude Include="Sei\Input\Input.h" />
     <ClInclude Include="Sei\Render\Mesh.h" />
     <ClInclude Include="Sei\Render\MeshData.h" />
     <ClInclude Include="Sei\Render\Render.h" />
