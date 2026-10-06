@@ -140,12 +140,20 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Sei\AssetLoader\ObjLoader.cpp" />
     <ClCompile Include="Sei\Render\Render.cpp" />
     <ClCompile Include="Sei\Window\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Sei\AssetLoader\OBJLoader.h" />
+    <ClInclude Include="Sei\Render\Mesh.h" />
+    <ClInclude Include="Sei\Render\MeshData.h" />
     <ClInclude Include="Sei\Render\Render.h" />
+    <ClInclude Include="Sei\Render\Shader.h" />
     <ClInclude Include="Sei\Window\Window.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Shaders\Solid.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,11 +1,22 @@
 #pragma once
 #include <Windows.h>
 
+#include "Mesh.h"
+#include "MeshData.h"
+#include "Shader.h"
+#include <filesystem>
+#include <string>
+#include <DirectXMath.h>
+
 namespace Sei::Render
 {
 	bool Initialize(HWND window);
 	void LogDebug();
 	void BeginFrame();
 	void EndFrame();
+	void Draw(const Mesh& mesh, const Shader& shader, const DirectX::XMMATRIX& worldViewProjection);
 	void Shutdown();
+
+	bool CreateMesh(const MeshData& data, Mesh& output);
+	bool CreateShader(const std::filesystem::path& path, Shader& output, std::string& error);
 }
