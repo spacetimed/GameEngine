@@ -71,11 +71,12 @@ namespace Sei::HUD
         const auto size = target->GetSize();
         for (const auto* section : sections)
         {
+            if (!section->visible) continue;
             if (section->fontSize <= 0) continue;
             if (!format || currentFontSize != section->fontSize)
             {
                 format.Reset();
-                if (FAILED(writeFactory->CreateTextFormat(L"Segoe UI", nullptr, DWRITE_FONT_WEIGHT_NORMAL,
+                if (FAILED(writeFactory->CreateTextFormat(L"Consolas", nullptr, DWRITE_FONT_WEIGHT_NORMAL,
                     DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, section->fontSize,
                     L"en-us", format.GetAddressOf())))
                 {
@@ -87,16 +88,20 @@ namespace Sei::HUD
             }
             const auto& color = section->textColor;
             brush->SetColor(D2D1::ColorF(color.x, color.y, color.z, color.w));
-            float y = section->textPosition.y;
+            std::string line;
+            bool firstItem = true;
             for (const auto& item : section->items)
             {
                 if (!item.value) continue;
-                const auto text = WideText(item.key.empty() ? *item.value : item.key + ": " + *item.value);
-                const auto bounds = D2D1::RectF(section->textPosition.x, y, size.width, size.height);
-                target->DrawText(text.c_str(), static_cast<UINT32>(text.size()), format.Get(),
-                    bounds, brush.Get());
-                y += section->fontSize * 1.4f;
+                if (!firstItem) line += " ; ";
+                line += item.key.empty() ? *item.value : item.key + ": " + *item.value;
+                firstItem = false;
             }
+            const auto text = WideText(line);
+            const auto bounds = D2D1::RectF(section->textPosition.x, section->textPosition.y,
+                size.width, size.height);
+            target->DrawText(text.c_str(), static_cast<UINT32>(text.size()), format.Get(),
+                bounds, brush.Get());
         }
         return SUCCEEDED(target->EndDraw());
     }

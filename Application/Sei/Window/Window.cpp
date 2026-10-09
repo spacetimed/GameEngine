@@ -53,7 +53,7 @@ namespace Sei::Window
         windowHandle = CreateWindowExW(
             0,
             className,
-            L"Queue",
+            L"dev",
             WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT, CW_USEDEFAULT,
             bounds.right - bounds.left,

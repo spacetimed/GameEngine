@@ -21,7 +21,7 @@ VertexOutput VSMain(float3 position : POSITION, float3 normal : NORMAL)
 float4 PSMain(VertexOutput input) : SV_TARGET
 {
     const float3 directionToLight = normalize(float3(0.4f, 1.0f, -0.6f));
-    const float3 baseColour = float3(1.0f, 0.5f, 0.1f);
+    const float3 baseColour = float3(1.0f, 0.0f, 0.0f);
     float3 normal = input.normal / max(length(input.normal), 0.0001f);
     float diffuse = max(dot(normal, directionToLight), 0.0f);
     float3 colour = baseColour * (0.18f + 0.82f * diffuse);

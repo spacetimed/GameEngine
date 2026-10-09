@@ -155,7 +155,7 @@ namespace Sei::Render
         context->RSSetState(wireframe ? wireframeRasterizer.Get() : rasterizer.Get());
 
         // fill it with blue (sanity test)
-        const float colour[] = { 0.1f, 0.2f, 0.4f, 1.0f };
+        const float colour[] = { 0.0f, 0.0f, 0.0f, 0.0f };
         context->ClearRenderTargetView(target, colour);
         context->ClearDepthStencilView(depthTarget.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     }

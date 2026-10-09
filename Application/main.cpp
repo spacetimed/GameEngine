@@ -1,14 +1,17 @@
 #include "Sei/Window/Window.h"
 #include "Sei/Render/Render.h"
 
-#include "Sei/AssetLoader/SceneDataLoader.h"
 #include "Sei/Camera/FreeCameraController.h"
 #include "Sei/Input/Input.h"
 #include "Sei/Input/Keybinds.h"
 #include "Sei/HUD/HUD.h"
-#include <iostream>
 
+#include "Game/World/World.h"
+
+#include <iostream>
 #include <chrono>
+#include <format>
+#include <cmath>
 
 int main()
 {
@@ -25,38 +28,14 @@ int main()
 		return 1;
 	}
 
-	// load scene objects into vertex/index buffers
-	Sei::SceneDataLoader::SceneData scene;
-	if (!Sei::SceneDataLoader::loadSceneData("Resources/Maps/arena.glb", scene, error))
+	if (!Game::World::LoadMap("Resources/Maps/arena.glb", error))
 	{
-		std::cerr << "Scene loading failed: " << error << '\n';
+		std::cerr << error << '\n';
 		Sei::Render::Shutdown();
 		Sei::Window::Destroy();
 		return 1;
 	}
-	std::cout << "Arena loaded: " << scene.objects.size() << " objects\n";
-	for (const auto& [name, object] : scene.objects)
-		std::cout << "  " << name << ": " << object.mesh.indexCount / 3 << " triangles\n";
 
-	// Select the arena objects by name.
-	const auto& floor = scene.objects.at("Floor");
-	const auto& pillar1 = scene.objects.at("Pillar1");
-	const auto& pillar2 = scene.objects.at("Pillar2");
-	const auto& step = scene.objects.at("Step");
-	const auto& step1 = scene.objects.at("Step.001");
-	const auto& step2 = scene.objects.at("Step.002");
-	const auto& step3 = scene.objects.at("Step.003");
-
-	// load shader into vertex/pixel shader
-	Sei::Shader solidShader;
-	if (!Sei::Render::CreateShader("Resources/Shaders/Solid.hlsl", solidShader, error))
-	{
-		std::cerr << "Shader creation failed: " << error << '\n';
-		Sei::Render::Shutdown();
-		Sei::Window::Destroy();
-		return 1;
-	}
-	std::cout << "Solid shader created.\n";
 
 	// Keep the initial viewing direction while the camera moves.
 	Sei::Camera camera;
@@ -64,11 +43,8 @@ int main()
 	//camera.LookAt(0.0f, 1.5f, 0.0f);
 
 	// (temp) spawn on floor
-	const auto& t = floor.transform;
-	camera.SetPosition(
-		t._41,         // Floor's X position.
-		t._42 + 2.0f,  // Two units above its origin.
-		t._43);        // Floor's Z position.
+	const auto spawn = Game::World::GetSpawnPosition();
+	camera.SetPosition(spawn.x, spawn.y, spawn.z);
 	camera.SetRotation(0.0f, 0.0f); // Face +Z.
 
 	RECT client = {};
@@ -87,22 +63,31 @@ int main()
 	{
 		std::cerr << "Could not initialize raw mouse input.\n";
 		Sei::Input::Shutdown();
+		Game::World::Clear();
 		Sei::Render::Shutdown();
 		Sei::Window::Destroy();
 		return 1;
 	}
-	std::cout << "Click to look around; Escape releases the mouse.\n";
 	auto previousTime = std::chrono::steady_clock::now();
 
 	// HUD section reads the current value of this string each frame.
-	std::string currFps = "...";
+	std::string currFps = "0";
+	std::string currFrametime = "0.00 ms";
+	std::string resolution = std::format("{}x{}", client.right - client.left, client.bottom - client.top);
+
 	Sei::HUD::Section fpsOverlay;
-	fpsOverlay.items.push_back({ "FPS", &currFps });
+
+	fpsOverlay.items.push_back({ "fps", &currFps });
+	fpsOverlay.items.push_back({ "frametime", &currFrametime });
+	fpsOverlay.items.push_back({ "resolution", &resolution });
+
+	// bind all hud elements onto renderer (todo: refactor all rendering to render.cpp)
 	Sei::HUD::BindSection(fpsOverlay);
 
-	Sei::Keybinds::Bind(VK_F2, [] {
-		Sei::Render::ToggleWireframe();
-	});
+	// keybinds
+	Sei::Keybinds::Bind(VK_F2, Sei::Render::ToggleWireframe);
+	Sei::Keybinds::Bind(VK_OEM_3, [&fpsOverlay] { fpsOverlay.ToggleVisibility(); });
+
 	float fpsElapsed = 0.0f;
 	unsigned int fpsFrames = 0;
 
@@ -114,12 +99,13 @@ int main()
 		float deltaTime = std::chrono::duration<float>(now - previousTime).count();
 		previousTime = now;
 
-		// Average FPS over half a second, using actual elapsed time.
+		// Average FPS and frametime over half a second, using actual elapsed time.
 		fpsElapsed += deltaTime;
 		++fpsFrames;
 		if (fpsElapsed >= 0.5f)
 		{
 			currFps = std::to_string(static_cast<unsigned int>(fpsFrames / fpsElapsed + 0.5f));
+			currFrametime = std::format("{:.2f} ms", fpsElapsed * 1000.0f / fpsFrames);
 			fpsElapsed = 0.0f;
 			fpsFrames = 0;
 		}
@@ -133,16 +119,11 @@ int main()
 		Sei::FreeCameraController::Update(camera, deltaTime, 10.0f);
 
 		Sei::Render::BeginFrame();
-		Sei::Render::Draw(floor.mesh, solidShader, camera, floor.transform);
-		Sei::Render::Draw(pillar1.mesh, solidShader, camera, pillar1.transform);
-		Sei::Render::Draw(pillar2.mesh, solidShader, camera, pillar2.transform);
-		Sei::Render::Draw(step.mesh, solidShader, camera, step.transform);
-		Sei::Render::Draw(step1.mesh, solidShader, camera, step1.transform);
-		Sei::Render::Draw(step2.mesh, solidShader, camera, step2.transform);
-		Sei::Render::Draw(step3.mesh, solidShader, camera, step3.transform);
+		Game::World::Draw(camera);
 		Sei::Render::EndFrame();
 	}
 
+	Game::World::Clear();
 	Sei::Render::Shutdown();
 	Sei::Window::Destroy();
 	Sei::Input::Shutdown();

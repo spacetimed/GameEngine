@@ -139,6 +139,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Game\World\World.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Sei\Input\Keybinds.cpp" />
     <ClCompile Include="Sei\HUD\HUD.cpp" />
@@ -151,6 +152,8 @@
     <ClCompile Include="Sei\Window\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Game\Player\Player.h" />
+    <ClInclude Include="Game\World\World.h" />
     <ClInclude Include="Sei\AssetLoader\OBJLoader.h" />
     <ClInclude Include="Sei\AssetLoader\SceneDataLoader.h" />
     <ClInclude Include="Sei\HUD\Section.h" />
