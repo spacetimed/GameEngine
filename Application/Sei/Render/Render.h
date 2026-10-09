@@ -17,6 +17,7 @@ namespace Sei::Render
 	void EndFrame();
 	void Draw(const Mesh& mesh, const Shader& shader, const DirectX::XMMATRIX& worldViewProjection);
 	void Draw(const Mesh& mesh, const Shader& shader, const Camera& camera);
+	void Draw(const Mesh& mesh, const Shader& shader, const Camera& camera, const DirectX::XMFLOAT4X4& transform);
 	void Shutdown();
 
 	bool CreateMesh(const MeshData& data, Mesh& output);

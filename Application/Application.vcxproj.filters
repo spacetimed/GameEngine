@@ -18,6 +18,9 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Sei\AssetLoader\SceneDataLoader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Sei\Camera\Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -39,6 +42,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Sei\Window\Window.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Sei\AssetLoader\SceneDataLoader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\cgltf\cgltf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Sei\Camera\Camera.h">

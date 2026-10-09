@@ -144,11 +144,14 @@
     <ClCompile Include="Sei\Camera\FreeCameraController.cpp" />
     <ClCompile Include="Sei\Input\Input.cpp" />
     <ClCompile Include="Sei\AssetLoader\ObjLoader.cpp" />
+    <ClCompile Include="Sei\AssetLoader\SceneDataLoader.cpp" />
     <ClCompile Include="Sei\Render\Render.cpp" />
     <ClCompile Include="Sei\Window\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Sei\AssetLoader\OBJLoader.h" />
+    <ClInclude Include="Sei\AssetLoader\SceneDataLoader.h" />
+    <ClInclude Include="ThirdParty\cgltf\cgltf.h" />
     <ClInclude Include="Sei\Camera\Camera.h" />
     <ClInclude Include="Sei\Camera\FreeCameraController.h" />
     <ClInclude Include="Sei\Input\Input.h" />

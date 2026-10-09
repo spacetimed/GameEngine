@@ -1,7 +1,7 @@
 #include "Sei/Window/Window.h"
 #include "Sei/Render/Render.h"
 
-#include "Sei/AssetLoader/OBJLoader.h"
+#include "Sei/AssetLoader/SceneDataLoader.h"
 #include "Sei/Camera/FreeCameraController.h"
 #include "Sei/Input/Input.h"
 #include <iostream>
@@ -10,15 +10,7 @@
 
 int main()
 {
-	// smoke test: try to load teapot obj
-	Sei::MeshData teapot;
 	std::string error;
-	if (!Sei::AssetLoader::LoadOBJ("Resources/Models/teapot.obj", teapot, error))
-	{
-		std::cerr << "model loading failed: " << error << '\n';
-		return 1;
-	}
-	std::cout << "teapot: " << teapot.vertices.size() << " vertices, " << teapot.indices.size() / 3 << " triangles\n";
 
 	// create window; ensure success
 	if (!Sei::Window::Create()) return 1;
@@ -31,17 +23,31 @@ int main()
 		return 1;
 	}
 
-	// try to load teapot mesh
-	Sei::Mesh teapotMesh;
-	if (!Sei::Render::CreateMesh(teapot, teapotMesh))
+	// load scene objects into vertex/index buffers
+	Sei::SceneDataLoader::SceneData scene;
+	if (!Sei::SceneDataLoader::loadSceneData("Resources/Maps/arena.glb", scene, error))
 	{
-		std::cerr << "Could not create teapot GPU buffers.\n";
+		std::cerr << "Scene loading failed: " << error << '\n';
 		Sei::Render::Shutdown();
 		Sei::Window::Destroy();
 		return 1;
 	}
-	std::cout << "Teapot uploaded to GPU.\n";
+	std::cout << "Arena loaded: " << scene.objects.size() << " objects\n";
+	for (const auto& [name, object] : scene.objects)
+		std::cout << "  " << name << ": " << object.mesh.indexCount / 3 << " triangles\n";
 
+	// Draw only one named object to verify independent selection.
+	const auto selected = scene.objects.find("Pillar2");
+	if (selected == scene.objects.end())
+	{
+		std::cerr << "Arena contains no Pillar2 object.\n";
+		Sei::Render::Shutdown();
+		Sei::Window::Destroy();
+		return 1;
+	}
+	const auto& pillar = selected->second;
+
+	// load shader into vertex/pixel shader
 	Sei::Shader solidShader;
 	if (!Sei::Render::CreateShader("Resources/Shaders/Solid.hlsl", solidShader, error))
 	{
@@ -90,7 +96,7 @@ int main()
 		Sei::FreeCameraController::Update(camera, deltaTime);
 
 		Sei::Render::BeginFrame();
-		Sei::Render::Draw(teapotMesh, solidShader, camera);
+		Sei::Render::Draw(pillar.mesh, solidShader, camera, pillar.transform);
 		Sei::Render::EndFrame();
 	}
 

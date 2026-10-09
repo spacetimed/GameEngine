@@ -188,6 +188,12 @@ namespace Sei::Render
         device.Reset();
     }
 
+    void Draw(const Mesh& mesh, const Shader& shader, const Camera& camera, const DirectX::XMFLOAT4X4& transform)
+    {
+        Draw(mesh, shader, DirectX::XMLoadFloat4x4(&transform) *
+            camera.GetViewMatrix() * camera.GetProjectionMatrix());
+    }
+
     bool CreateShader(const std::filesystem::path& path, Shader& output, std::string& error)
     {
         error.clear();
