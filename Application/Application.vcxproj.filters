@@ -18,6 +18,12 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Sei\Input\Keybinds.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Sei\HUD\HUD.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Sei\AssetLoader\SceneDataLoader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -59,6 +65,9 @@
     <ClInclude Include="Sei\Input\Input.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Sei\Input\Keybinds.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Sei\Render\Render.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -72,6 +81,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Sei\Render\Shader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Sei\HUD\Section.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Sei\HUD\HUD.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

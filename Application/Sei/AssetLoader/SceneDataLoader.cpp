@@ -85,13 +85,24 @@ namespace Sei::SceneDataLoader
                         }
 
                         const cgltf_accessor* positions = nullptr;
+                        const cgltf_accessor* normals = nullptr;
                         for (cgltf_size a = 0; a < primitive.attributes_count; ++a)
+                        {
                             if (primitive.attributes[a].type == cgltf_attribute_type_position)
                                 positions = primitive.attributes[a].data;
+                            if (primitive.attributes[a].type == cgltf_attribute_type_normal)
+                                normals = primitive.attributes[a].data;
+                        }
 
                         if (!positions || positions->type != cgltf_type_vec3 || !positions->count)
                         {
                             error = "mesh has no valid positions: " + name;
+                            return false;
+                        }
+
+                        if (!normals || normals->type != cgltf_type_vec3 || normals->count != positions->count)
+                        {
+                            error = "mesh has no valid normals: " + name;
                             return false;
                         }
 
@@ -105,13 +116,18 @@ namespace Sei::SceneDataLoader
                         for (cgltf_size v = 0; v < positions->count; ++v)
                         {
                             float xyz[3];
-                            if (!cgltf_accessor_read_float(positions, v, xyz, 3))
+                            float normal[3];
+                            if (!cgltf_accessor_read_float(positions, v, xyz, 3) ||
+                                !cgltf_accessor_read_float(normals, v, normal, 3))
                             {
-                                error = "could not read vertex: " + name;
+                                error = "could not read vertex or normal: " + name;
                                 return false;
                             }
                             // glTF is right-handed; Sei currently uses left-handed coordinates.
-                            geometry.vertices.push_back({ xyz[0], xyz[1], -xyz[2] });
+                            geometry.vertices.push_back({
+                                xyz[0], xyz[1], -xyz[2],
+                                normal[0], normal[1], -normal[2]
+                            });
                         }
 
                         const cgltf_size count = primitive.indices ? primitive.indices->count : positions->count;

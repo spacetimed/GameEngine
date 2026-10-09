@@ -5,7 +5,10 @@
 
 namespace Sei
 {
-	struct Vertex { float x, y, z; };
+	struct Vertex { 
+		float x, y, z; 
+		float nx, ny, nz;
+	};
 
 	struct MeshData
 	{

@@ -14,8 +14,10 @@ namespace Sei::Render
 	bool Initialize(HWND window);
 	void LogDebug();
 	void BeginFrame();
+	void ToggleWireframe();
 	void EndFrame();
-	void Draw(const Mesh& mesh, const Shader& shader, const DirectX::XMMATRIX& worldViewProjection);
+	void Draw(const Mesh& mesh, const Shader& shader, const DirectX::XMMATRIX& worldViewProjection,
+		const DirectX::XMMATRIX& world = DirectX::XMMatrixIdentity());
 	void Draw(const Mesh& mesh, const Shader& shader, const Camera& camera);
 	void Draw(const Mesh& mesh, const Shader& shader, const Camera& camera, const DirectX::XMFLOAT4X4& transform);
 	void Shutdown();

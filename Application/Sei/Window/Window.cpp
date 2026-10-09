@@ -43,7 +43,7 @@ namespace Sei::Window
 
         if (!RegisterClassW(&wc)) return false;
 
-        RECT bounds = { 0, 0, 640, 480 };
+        RECT bounds = { 0, 0, 1280, 720 };
         if (!AdjustWindowRect(&bounds, WS_OVERLAPPEDWINDOW, FALSE))
         {
             Destroy();

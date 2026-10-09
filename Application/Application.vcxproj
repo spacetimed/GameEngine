@@ -140,6 +140,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Sei\Input\Keybinds.cpp" />
+    <ClCompile Include="Sei\HUD\HUD.cpp" />
     <ClCompile Include="Sei\Camera\Camera.cpp" />
     <ClCompile Include="Sei\Camera\FreeCameraController.cpp" />
     <ClCompile Include="Sei\Input\Input.cpp" />
@@ -151,10 +153,13 @@
   <ItemGroup>
     <ClInclude Include="Sei\AssetLoader\OBJLoader.h" />
     <ClInclude Include="Sei\AssetLoader\SceneDataLoader.h" />
+    <ClInclude Include="Sei\HUD\Section.h" />
+    <ClInclude Include="Sei\HUD\HUD.h" />
     <ClInclude Include="ThirdParty\cgltf\cgltf.h" />
     <ClInclude Include="Sei\Camera\Camera.h" />
     <ClInclude Include="Sei\Camera\FreeCameraController.h" />
     <ClInclude Include="Sei\Input\Input.h" />
+    <ClInclude Include="Sei\Input\Keybinds.h" />
     <ClInclude Include="Sei\Render\Mesh.h" />
     <ClInclude Include="Sei\Render\MeshData.h" />
     <ClInclude Include="Sei\Render\Render.h" />

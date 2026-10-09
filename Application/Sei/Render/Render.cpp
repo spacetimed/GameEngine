@@ -1,4 +1,5 @@
 #include "Render.h"
+#include "../HUD/HUD.h"
 
 #include <d3d11.h>
 #include <d3dcompiler.h>
@@ -6,6 +7,7 @@
 
 #include <iostream>
 #include <utility> // for std::move
+#include <cstddef>
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "d3dcompiler.lib")
@@ -22,7 +24,14 @@ namespace
     ComPtr<ID3D11DepthStencilView> depthTarget;
     ComPtr<ID3D11Buffer> transformBuffer;
     ComPtr<ID3D11RasterizerState> rasterizer;
+    ComPtr<ID3D11RasterizerState> wireframeRasterizer;
+    bool wireframe = false;
     D3D11_VIEWPORT viewport = {};
+    struct TransformConstants
+    {
+        DirectX::XMFLOAT4X4 worldViewProjection;
+        DirectX::XMFLOAT4X4 normalTransform;
+    };
 }
 
 namespace Sei::Render
@@ -44,7 +53,7 @@ namespace Sei::Render
             nullptr,
             D3D_DRIVER_TYPE_HARDWARE,
             nullptr,
-            0,
+            D3D11_CREATE_DEVICE_BGRA_SUPPORT,
             nullptr,
             0,
             D3D11_SDK_VERSION,
@@ -89,7 +98,7 @@ namespace Sei::Render
         viewport.MaxDepth = 1.0f;
 
         D3D11_BUFFER_DESC transformDesc = {};
-        transformDesc.ByteWidth = sizeof(DirectX::XMFLOAT4X4);
+        transformDesc.ByteWidth = sizeof(TransformConstants);
         transformDesc.Usage = D3D11_USAGE_DEFAULT;
         transformDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
         hr = device->CreateBuffer(&transformDesc, nullptr, transformBuffer.GetAddressOf());
@@ -97,12 +106,22 @@ namespace Sei::Render
 
         // Show both sides for now, regardless of the imported model's winding.
         D3D11_RASTERIZER_DESC rasterDesc = {};
-        //rasterDesc.FillMode = D3D11_FILL_SOLID;
-        rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
+        rasterDesc.FillMode = D3D11_FILL_SOLID;
         rasterDesc.CullMode = D3D11_CULL_NONE;
         rasterDesc.DepthClipEnable = TRUE;
         hr = device->CreateRasterizerState(&rasterDesc, rasterizer.GetAddressOf());
         if (FAILED(hr)) return false;
+        rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
+        hr = device->CreateRasterizerState(&rasterDesc, wireframeRasterizer.GetAddressOf());
+        if (FAILED(hr)) return false;
+        wireframe = false;
+
+        ComPtr<IDXGISurface> surface;
+        if (FAILED(backBuffer.As(&surface)) || !HUD::Initialize(surface.Get()))
+        {
+            std::cerr << "Could not initialize HUD text rendering.\n";
+            return false;
+        }
 
         LogDebug();
 
@@ -133,7 +152,7 @@ namespace Sei::Render
         context->OMSetRenderTargets(1, &target, depthTarget.Get());
         context->OMSetDepthStencilState(nullptr, 0); // Default: depth test and writes enabled.
         context->RSSetViewports(1, &viewport);
-        context->RSSetState(rasterizer.Get());
+        context->RSSetState(wireframe ? wireframeRasterizer.Get() : rasterizer.Get());
 
         // fill it with blue (sanity test)
         const float colour[] = { 0.1f, 0.2f, 0.4f, 1.0f };
@@ -141,11 +160,15 @@ namespace Sei::Render
         context->ClearDepthStencilView(depthTarget.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     }
 
-    void Draw(const Mesh& mesh, const Shader& shader, const DirectX::XMMATRIX& worldViewProjection)
+    void Draw(const Mesh& mesh, const Shader& shader, const DirectX::XMMATRIX& worldViewProjection,
+              const DirectX::XMMATRIX& world)
     {
         // HLSL matrices use column-major storage by default.
-        DirectX::XMFLOAT4X4 transform;
-        DirectX::XMStoreFloat4x4(&transform, DirectX::XMMatrixTranspose(worldViewProjection));
+        TransformConstants transform;
+        DirectX::XMStoreFloat4x4(&transform.worldViewProjection, DirectX::XMMatrixTranspose(worldViewProjection));
+        // Inverse-transpose preserves surface directions under nonuniform scale.
+        const auto normalMatrix = DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, world));
+        DirectX::XMStoreFloat4x4(&transform.normalTransform, DirectX::XMMatrixTranspose(normalMatrix));
         context->UpdateSubresource(transformBuffer.Get(), 0, nullptr, &transform, 0, 0);
 
         ID3D11Buffer* constants = transformBuffer.Get();
@@ -163,10 +186,19 @@ namespace Sei::Render
         context->DrawIndexed(mesh.indexCount, 0, 0);
     }
 
+    void ToggleWireframe()
+    {
+        wireframe = !wireframe;
+    }
+
     void EndFrame()
     {
+        // Draw HUD text over the completed 3D image before presenting.
+        context->OMSetRenderTargets(0, nullptr, nullptr);
+        if (!HUD::Draw())
+            std::cerr << "HUD drawing failed.\n";
         // present completed frame
-        swapChain->Present(1, 0);
+        swapChain->Present(0, 0);
     }
 
     void Draw(const Mesh& mesh, const Shader& shader, const Camera& camera)
@@ -179,7 +211,10 @@ namespace Sei::Render
     {
         // release/cleanup
         if (context) context->ClearState();
+        HUD::Shutdown();
         rasterizer.Reset();
+        wireframeRasterizer.Reset();
+        wireframe = false;
         transformBuffer.Reset();
         depthTarget.Reset();
         renderTarget.Reset();
@@ -190,8 +225,8 @@ namespace Sei::Render
 
     void Draw(const Mesh& mesh, const Shader& shader, const Camera& camera, const DirectX::XMFLOAT4X4& transform)
     {
-        Draw(mesh, shader, DirectX::XMLoadFloat4x4(&transform) *
-            camera.GetViewMatrix() * camera.GetProjectionMatrix());
+        const auto world = DirectX::XMLoadFloat4x4(&transform);
+        Draw(mesh, shader, world * camera.GetViewMatrix() * camera.GetProjectionMatrix(), world);
     }
 
     bool CreateShader(const std::filesystem::path& path, Shader& output, std::string& error)
@@ -254,14 +289,16 @@ namespace Sei::Render
             return false;
         }
 
-        // Matches our current Vertex: three floats containing position.
+        // Matches Vertex: position followed by normal.
         const D3D11_INPUT_ELEMENT_DESC layout[] =
         {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
+              D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<UINT>(offsetof(Vertex, nx)),
               D3D11_INPUT_PER_VERTEX_DATA, 0 }
         };
         hr = device->CreateInputLayout(
-            layout, 1, vertexCode->GetBufferPointer(), vertexCode->GetBufferSize(),
+            layout, 2, vertexCode->GetBufferPointer(), vertexCode->GetBufferSize(),
             shader.inputLayout.GetAddressOf());
         if (FAILED(hr))
         {
