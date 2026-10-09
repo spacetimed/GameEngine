@@ -5,6 +5,7 @@
 
 namespace Sei::Input
 {
+    inline float mouseSensitivity = 0.002f; // Radians per raw mouse count.
     bool Initialize(HWND window);
     void Shutdown();
     void ProcessMessage(HWND window, UINT message, WPARAM wParam, LPARAM lParam);

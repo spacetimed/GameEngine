@@ -1,17 +1,16 @@
 #include "Sei/Window/Window.h"
 #include "Sei/Render/Render.h"
 
-#include "Sei/Camera/FreeCameraController.h"
 #include "Sei/Input/Input.h"
 #include "Sei/Input/Keybinds.h"
 #include "Sei/HUD/HUD.h"
 
 #include "Game/World/World.h"
+#include "Game/Player/Player.h"
 
 #include <iostream>
 #include <chrono>
 #include <format>
-#include <cmath>
 
 int main()
 {
@@ -37,27 +36,12 @@ int main()
 	}
 
 
-	// Keep the initial viewing direction while the camera moves.
-	Sei::Camera camera;
-	//camera.SetPosition(8.0f, 5.0f, -10.0f);
-	//camera.LookAt(0.0f, 1.5f, 0.0f);
-
 	// (temp) spawn on floor
 	const auto spawn = Game::World::GetSpawnPosition();
-	camera.SetPosition(spawn.x, spawn.y, spawn.z);
-	camera.SetRotation(0.0f, 0.0f); // Face +Z.
+	Game::Player::spawn(spawn.x, spawn.y, spawn.z);
 
 	RECT client = {};
 	GetClientRect(Sei::Window::GetHandle(), &client);
-	const float aspect = static_cast<float>(client.right - client.left) /
-		static_cast<float>(client.bottom - client.top);
-	//camera.SetPerspective(DirectX::XM_PIDIV4, aspect, 0.1f, 100.0f);
-
-	// quake fov
-	const float horizontalFov = DirectX::XMConvertToRadians(103.0f);
-	const float verticalFov =
-		2.0f * std::atan(std::tan(horizontalFov * 0.5f) / aspect);
-	camera.SetPerspective(verticalFov, aspect, 0.1f, 100.0f);
 
 	if (!Sei::Input::Initialize(Sei::Window::GetHandle()))
 	{
@@ -116,10 +100,10 @@ int main()
 
 		Sei::Input::Update();
 		Sei::Keybinds::Update();
-		Sei::FreeCameraController::Update(camera, deltaTime, 10.0f);
+		Game::Player::update(deltaTime);
 
 		Sei::Render::BeginFrame();
-		Game::World::Draw(camera);
+		Game::World::Draw(Game::Player::getCamera());
 		Sei::Render::EndFrame();
 	}
 

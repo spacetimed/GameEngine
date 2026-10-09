@@ -9,7 +9,7 @@ namespace Sei::FreeCameraController
     {
         if (Input::IsMouseCaptured())
         {
-            const float sensitivity = 0.002f; // Radians per raw mouse count.
+            const float sensitivity = Input::mouseSensitivity;
             camera.Rotate(Input::GetMouseDeltaX() * sensitivity,
                           -Input::GetMouseDeltaY() * sensitivity);
         }

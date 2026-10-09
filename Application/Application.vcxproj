@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Game\World\World.cpp" />
+    <ClCompile Include="Game\Player\Player.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Sei\Input\Keybinds.cpp" />
     <ClCompile Include="Sei\HUD\HUD.cpp" />
