@@ -17,15 +17,18 @@ namespace Sei::Performance
 	}
 
 	// bookkepeping, can access ref's from parent assuming .tick() is used throughout renders
+	// public
 	std::string currFps;
 	std::string currFrametime;
 	std::string resolution;
+	float deltaTime;
 
-	void Init(int resW, int resH)
+	void Initialize(int resW, int resH)
 	{
 		previousTime = std::chrono::steady_clock::now();
 		fpsElapsed = 0.0f;
 		fpsFrames = 0;
+		deltaTime = 0.0f;
 		currFps = "0";
 		currFrametime = "0.00 ms";
 		resolution = std::format("{}x{}", resW, resH);
@@ -34,7 +37,7 @@ namespace Sei::Performance
 	void tick()
 	{
 		const auto now = std::chrono::steady_clock::now();
-		float deltaTime = std::chrono::duration<float>(now - previousTime).count();
+		deltaTime = std::chrono::duration<float>(now - previousTime).count();
 		previousTime = now;
 		fpsElapsed += deltaTime;
 		++fpsFrames;

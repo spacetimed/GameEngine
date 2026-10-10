@@ -1,14 +1,14 @@
 #include "View.h"
 
-namespace Sei::Player::View
+namespace Game::Player::View
 {
-    void toggle()
+    void Toggle()
     {
         isThirdPerson = !isThirdPerson;
         mode = isThirdPerson ? "3rd" : "1st";
     }
 
-    void update(Camera& camera, const DirectX::XMFLOAT3& feet, float eyeHeight)
+    void Update(Sei::Camera& camera, const DirectX::XMFLOAT3& feet, float eyeHeight)
     {
         const float distance = isThirdPerson ? 4.0f : 0.0f;
         const auto forward = camera.GetForward();

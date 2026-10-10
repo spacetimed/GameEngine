@@ -3,12 +3,15 @@
 #include "Section.h"
 #include <dxgi.h>
 
+namespace Sei::Render { struct RenderQueue; }
+
 namespace Sei::HUD
 {
-    bool Initialize(IDXGISurface* surface);
+    bool Initialize(Render::RenderQueue& renderQueue);
     void Shutdown();
 
     // The section and its value strings must outlive their registration.
     void BindSection(const Section& section);
-    bool Draw();
+    void Submit();
+    bool Draw(const std::vector<const Section*>& drawSections);
 }

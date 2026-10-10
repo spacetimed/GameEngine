@@ -46,7 +46,7 @@ namespace Sei::Window
         RECT bounds = { 0, 0, 1280, 720 };
         if (!AdjustWindowRect(&bounds, WS_OVERLAPPEDWINDOW, FALSE))
         {
-            Destroy();
+            Shutdown();
             return false;
         }
 
@@ -66,7 +66,7 @@ namespace Sei::Window
 
         if (!windowHandle)
         {
-            Destroy();
+            Shutdown();
             return false;
         }
 
@@ -95,7 +95,7 @@ namespace Sei::Window
         return windowHandle;
     }
 
-    void Destroy()
+    void Shutdown()
     {
         if (windowHandle)
         {

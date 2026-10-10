@@ -22,7 +22,7 @@ namespace Sei::Keybinds
             if (action && Input::KeyPressed(key)) action();
     }
 
-    void Clear()
+    void Shutdown()
     {
         bindings.clear();
     }

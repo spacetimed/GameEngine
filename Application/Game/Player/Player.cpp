@@ -4,7 +4,6 @@
 #include "../../Sei/Window/Window.h"
 #include "../../Sei/AssetLoader/SceneDataLoader.h"
 #include "../../Sei/Render/Render.h"
-#include "../../Sei/Collision/View.h"
 
 #include <cmath>
 #include <iostream>
@@ -25,44 +24,45 @@ namespace Game::Player
 		DirectX::XMFLOAT3 velocity = {};
 		bool grounded = false;
 		Sei::Camera camera;
-		Sei::SceneDataLoader::SceneObject ModelObject;
+		Sei::SceneDataLoader::SceneObject modelObject;
 		Sei::Shader modelShader;
+		Sei::Render::RenderQueue* queue = nullptr;
 
 		Sei::Player::Collision::AABB collisionBox;
 	}
 
-	bool spawn(float x, float y, float z)
+	bool Initialize(Sei::Render::RenderQueue& renderQueue, const DirectX::XMFLOAT3& spawnPosition)
 	{
 		std::string error;
 
-		position = { x, y, z };
+		position = spawnPosition;
 		velocity = {};
 		grounded = false;
 		camera.SetRotation(0.0f, 0.0f);
-		Sei::Player::View::update(camera, position, eyeHeight);
+		View::Update(camera, position, eyeHeight);
 
 		// Load once; respawning reuses the same GPU mesh and shader.
-		if (!ModelObject.mesh.vertexBuffer)
+		if (!modelObject.mesh.vertexBuffer)
 		{
-			Sei::SceneDataLoader::SceneData ModelData;
-			if (!Sei::SceneDataLoader::loadSceneData("Resources/Models/player.glb", ModelData, error) ||
+			Sei::SceneDataLoader::SceneData modelData;
+			if (!Sei::SceneDataLoader::loadSceneData("Resources/Models/player.glb", modelData, error) ||
 				!Sei::Render::CreateShader("Resources/Shaders/Solid.hlsl", modelShader, error))
 			{
 				std::cerr << "could not load player model: " << error << '\n';
 				return false;
 			}
-			const auto model = ModelData.objects.find("Player");
-			if (model == ModelData.objects.end())
+			const auto model = modelData.objects.find("Player");
+			if (model == modelData.objects.end())
 			{
 				std::cerr << "player.glb contains no object named Player\n";
 				return false;
 			}
-			ModelObject = model->second; // object name in Blender: Player
+			modelObject = model->second; // object name in Blender: Player
 		}
 
 		// detect collisionBox here
-		const auto& min = ModelObject.mesh.boundsMin;
-		const auto& max = ModelObject.mesh.boundsMax;
+		const auto& min = modelObject.mesh.boundsMin;
+		const auto& max = modelObject.mesh.boundsMax;
 		collisionBox.min = { FLT_MAX, FLT_MAX, FLT_MAX };
 		collisionBox.max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
 		for (int corner = 0; corner < 8; ++corner)
@@ -71,7 +71,7 @@ namespace Game::Player
 				corner & 2 ? max.y : min.y, corner & 4 ? max.z : min.z, 1.0f);
 			DirectX::XMFLOAT3 p;
 			DirectX::XMStoreFloat3(&p, DirectX::XMVector3TransformCoord(point,
-				DirectX::XMLoadFloat4x4(&ModelObject.transform)));
+				DirectX::XMLoadFloat4x4(&modelObject.transform)));
 			collisionBox.min.x = (std::min)(collisionBox.min.x, p.x);
 			collisionBox.min.y = (std::min)(collisionBox.min.y, p.y);
 			collisionBox.min.z = (std::min)(collisionBox.min.z, p.z);
@@ -87,34 +87,44 @@ namespace Game::Player
 		const float horizontalFov = DirectX::XMConvertToRadians(103.0f);
 		const float verticalFov = 2.0f * std::atan(std::tan(horizontalFov * 0.5f) / aspect);
 		camera.SetPerspective(verticalFov, aspect, 0.1f, 100.0f);
+		queue = &renderQueue;
+		queue->camera = &camera;
 		return true;
 	}
 
-	void draw()
+	void Submit()
 	{
-		if (!Sei::Player::View::isThirdPerson || !ModelObject.mesh.vertexBuffer) return;
+		if (!View::isThirdPerson || !modelObject.mesh.vertexBuffer) return;
 		const auto forward = camera.GetForward();
 		const float yaw = std::atan2(forward.x, forward.z);
 		DirectX::XMFLOAT4X4 transform;
-		DirectX::XMStoreFloat4x4(&transform, DirectX::XMLoadFloat4x4(&ModelObject.transform) *
+		DirectX::XMStoreFloat4x4(&transform, DirectX::XMLoadFloat4x4(&modelObject.transform) *
 			DirectX::XMMatrixRotationY(yaw) *
 			DirectX::XMMatrixTranslation(position.x, position.y, position.z));
-		Sei::Render::Draw(ModelObject.mesh, modelShader, camera, transform);
+		queue->items.push_back({ &modelObject.mesh, &modelShader, transform });
 	
 		// draw collision box here
-		Sei::Render::DrawBox(
+		queue->boxes.push_back({
 			{ position.x + collisionBox.min.x, position.y + collisionBox.min.y, position.z + collisionBox.min.z },
-			{ position.x + collisionBox.max.x, position.y + collisionBox.max.y, position.z + collisionBox.max.z }, camera);
+			{ position.x + collisionBox.max.x, position.y + collisionBox.max.y, position.z + collisionBox.max.z } });
 	}
 
-	void clear()
+	void Shutdown()
 	{
-		ModelObject = {};
+		if (queue)
+		{
+			queue->items.clear();
+			queue->boxes.clear();
+			if (queue->camera == &camera) queue->camera = nullptr;
+		}
+		queue = nullptr;
+		modelObject = {};
 		modelShader = {};
 	}
 
-	void update(float deltaTime)
+	void Update(float deltaTime)
 	{
+		deltaTime = (std::clamp)(deltaTime, 0.0f, 0.1f);
 		if (grounded && Sei::Input::KeyPressed(VK_SPACE))
 		{
 			velocity.y = std::sqrt(2.0f * gravity * jumpHeight);
@@ -129,14 +139,14 @@ namespace Game::Player
 			static_cast<float>(Sei::Input::KeyDown('S'));
 		const float right = static_cast<float>(Sei::Input::KeyDown('D')) -
 			static_cast<float>(Sei::Input::KeyDown('A'));
-		move(forward, right, deltaTime);
-		Game::World::checkOverlaps({
+		Move(forward, right, deltaTime);
+		Game::World::CheckOverlaps({
 			{ position.x + collisionBox.min.x, position.y + collisionBox.min.y, position.z + collisionBox.min.z },
 			{ position.x + collisionBox.max.x, position.y + collisionBox.max.y, position.z + collisionBox.max.z }
 		});
 	}
 
-	void move(float forwardInput, float rightInput, float deltaTime)
+	void Move(float forwardInput, float rightInput, float deltaTime)
 	{
 		velocity.x = velocity.z = 0.0f;
 		const float length = std::sqrt(forwardInput * forwardInput + rightInput * rightInput);
@@ -158,7 +168,7 @@ namespace Game::Player
 				{ position.x + collisionBox.min.x, position.y + collisionBox.min.y, position.z + collisionBox.min.z },
 				{ position.x + collisionBox.max.x, position.y + collisionBox.max.y, position.z + collisionBox.max.z }
 			};
-			const auto hit = Game::World::sweep(box, delta);
+			const auto hit = Game::World::Sweep(box, delta);
 			float fraction = hit.fraction;
 			if (hit.hit)
 			{
@@ -183,16 +193,16 @@ namespace Game::Player
 			{ position.x + collisionBox.min.x, position.y + collisionBox.min.y, position.z + collisionBox.min.z },
 			{ position.x + collisionBox.max.x, position.y + collisionBox.max.y, position.z + collisionBox.max.z }
 		};
-		const auto support = Game::World::sweep(box, { 0.0f, -0.002f, 0.0f });
+		const auto support = Game::World::Sweep(box, { 0.0f, -0.002f, 0.0f });
 		grounded = velocity.y <= 0.0f && support.hit && support.normal.y > 0.5f;
-		Sei::Player::View::update(camera, position, eyeHeight);
+		View::Update(camera, position, eyeHeight);
 	}
-	DirectX::XMFLOAT3 getPosition()
+	DirectX::XMFLOAT3 GetPosition()
 	{
 		return position;
 	}
 
-	Sei::Camera& getCamera()
+	Sei::Camera& GetCamera()
 	{
 		return camera;
 	}

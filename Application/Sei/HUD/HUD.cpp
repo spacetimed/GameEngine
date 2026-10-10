@@ -1,4 +1,6 @@
 #include "HUD.h"
+#include "../Render/Render.h"
+#include <iostream>
 
 #include <d2d1_1.h>
 #include <dwrite.h>
@@ -16,6 +18,7 @@ namespace
     ComPtr<ID2D1SolidColorBrush> brush;
     float currentFontSize = 0;
     std::vector<const Sei::HUD::Section*> sections;
+    Sei::Render::RenderQueue* queue = nullptr;
 
     std::wstring WideText(const std::string& text)
     {
@@ -30,8 +33,15 @@ namespace
 
 namespace Sei::HUD
 {
-    bool Initialize(IDXGISurface* surface)
+    bool Initialize(Render::RenderQueue& renderQueue)
     {
+        queue = &renderQueue;
+        auto* surface = Render::GetBackBufferSurface();
+        if (!surface)
+        {
+            std::cerr << "Initialize Render before HUD.\n";
+            return false;
+        }
         ComPtr<ID2D1Factory1> factory;
         if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, factory.GetAddressOf())))
             return false;
@@ -56,20 +66,26 @@ namespace Sei::HUD
             reinterpret_cast<IUnknown**>(writeFactory.GetAddressOf())));
     }
 
-    void BindToRender(const Section& section)
+    void BindSection(const Section& section)
     {
         for (const auto* existing : sections)
             if (existing == &section) return;
         sections.push_back(&section);
     }
 
-    bool Draw()
+    void Submit()
     {
-        if (sections.empty()) return true;
+        for (const auto* section : sections)
+            if (section->visible) queue->hudSections.push_back(section);
+    }
+
+    bool Draw(const std::vector<const Section*>& drawSections)
+    {
+        if (drawSections.empty()) return true;
         if (!target || !writeFactory) return false;
         target->BeginDraw();
         const auto size = target->GetSize();
-        for (const auto* section : sections)
+        for (const auto* section : drawSections)
         {
             if (!section->visible) continue;
             if (section->fontSize <= 0) continue;
@@ -108,6 +124,8 @@ namespace Sei::HUD
 
     void Shutdown()
     {
+        if (queue) queue->hudSections.clear();
+        queue = nullptr;
         sections.clear();
         brush.Reset();
         format.Reset();

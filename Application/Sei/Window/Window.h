@@ -6,5 +6,5 @@ namespace Sei::Window
     bool Create();
     bool Listen();
     HWND GetHandle();
-    void Destroy();
+    void Shutdown();
 }

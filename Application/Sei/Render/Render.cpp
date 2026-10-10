@@ -13,15 +13,18 @@
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "d3dcompiler.lib")
 
-// keep GPU objects private
+// private
 namespace
 {
+    Sei::Render::RenderQueue* queue = nullptr;
+
     using Microsoft::WRL::ComPtr;
 
     ComPtr<ID3D11Device> device;
     ComPtr<ID3D11DeviceContext> context;
     ComPtr<IDXGISwapChain> swapChain;
     ComPtr<ID3D11RenderTargetView> renderTarget;
+    ComPtr<IDXGISurface> backBufferSurface;
     ComPtr<ID3D11DepthStencilView> depthTarget;
     ComPtr<ID3D11Buffer> transformBuffer;
     ComPtr<ID3D11RasterizerState> rasterizer;
@@ -41,8 +44,10 @@ namespace
 
 namespace Sei::Render
 {
-    bool Initialize(HWND window)
+    bool Initialize(RenderQueue& renderQueue, HWND window)
     {
+        queue = &renderQueue;
+
         // describe swap chain initialization
         DXGI_SWAP_CHAIN_DESC desc = {};
         desc.BufferCount = 1;
@@ -121,10 +126,9 @@ namespace Sei::Render
         if (FAILED(hr)) return false;
         wireframe = false;
 
-        ComPtr<IDXGISurface> surface;
-        if (FAILED(backBuffer.As(&surface)) || !HUD::Initialize(surface.Get()))
+        if (FAILED(backBuffer.As(&backBufferSurface)))
         {
-            std::cerr << "Could not initialize HUD text rendering.\n";
+            std::cerr << "Could not access the back buffer surface.\n";
             return false;
         }
 
@@ -168,19 +172,25 @@ namespace Sei::Render
         ComPtr<IDXGIDevice> dxgiDevice;
         ComPtr<IDXGIAdapter> adapter;
         DXGI_ADAPTER_DESC adapterDesc = {};
-
         if (SUCCEEDED(device.As(&dxgiDevice)) &&
             SUCCEEDED(dxgiDevice->GetAdapter(adapter.GetAddressOf())) &&
             SUCCEEDED(adapter->GetDesc(&adapterDesc)))
-        {
             std::wcout << L"using GPU: " << adapterDesc.Description << L'\n';
-        }
-
         std::cout << "renderer successfully initialized!\n";
+    }
+
+    IDXGISurface* GetBackBufferSurface()
+    {
+        return backBufferSurface.Get();
     }
 
     void BeginFrame()
     {
+        // clear render queue
+        queue->items.clear();
+        queue->boxes.clear();
+        queue->hudSections.clear();
+
         // select back buffer as drawing destination
         ID3D11RenderTargetView* target = renderTarget.Get();
         context->OMSetRenderTargets(1, &target, depthTarget.Get());
@@ -245,10 +255,6 @@ namespace Sei::Render
 
     void EndFrame()
     {
-        // Draw HUD text over the completed 3D image before presenting.
-        context->OMSetRenderTargets(0, nullptr, nullptr);
-        if (!HUD::Draw())
-            std::cerr << "HUD drawing failed.\n";
         // present completed frame
         swapChain->Present(0, 0);
     }
@@ -261,9 +267,18 @@ namespace Sei::Render
 
     void Shutdown()
     {
+        if (queue)
+        {
+            queue->items.clear();
+            queue->boxes.clear();
+            queue->hudSections.clear();
+            queue->camera = nullptr;
+        }
+        queue = nullptr;
+        queue = nullptr;
+
         // release/cleanup
         if (context) context->ClearState();
-        HUD::Shutdown();
         boxMesh = {};
         boxShader = {};
         boxBlend.Reset();
@@ -274,9 +289,28 @@ namespace Sei::Render
         transformBuffer.Reset();
         depthTarget.Reset();
         renderTarget.Reset();
+        backBufferSurface.Reset();
         swapChain.Reset();
         context.Reset();
         device.Reset();
+    }
+
+    void RenderAll()
+    {
+        if ((!queue->items.empty() || !queue->boxes.empty()) && !queue->camera)
+        {
+            std::cerr << "Render queue has no camera.\n";
+            return;
+        }
+        for (const RenderItem& item : queue->items)
+        {
+            Draw(*item.mesh, *item.shader, *queue->camera, item.transform);
+        }
+        for (const auto& box : queue->boxes)
+            DrawBox(box.min, box.max, *queue->camera);
+        context->OMSetRenderTargets(0, nullptr, nullptr);
+        if (!HUD::Draw(queue->hudSections))
+            std::cerr << "HUD drawing failed.\n";
     }
 
     void Draw(const Mesh& mesh, const Shader& shader, const Camera& camera, const DirectX::XMFLOAT4X4& transform)

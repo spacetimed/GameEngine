@@ -18,10 +18,13 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Sei\Performance\Performance.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Sei\Collision\Collision.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Sei\Collision\View.cpp">
+    <ClCompile Include="Game\Player\View.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Game\Player\Player.cpp">
@@ -104,7 +107,10 @@
     <ClInclude Include="Game\Player\Player.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Sei\Collision\View.h">
+    <ClInclude Include="Sei\Performance\Performance.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Player\View.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Game\World\World.h">

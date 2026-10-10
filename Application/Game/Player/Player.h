@@ -3,14 +3,16 @@
 #include <DirectXMath.h>
 
 #include "../../Sei/Camera/Camera.h"
+#include "../../Sei/Render/Render.h"
+#include "View.h"
 
 namespace Game::Player
 {
-	bool spawn(float x, float y, float z);
-	void draw();
-	void clear();
-	void update(float deltaTime);
-	void move(float forward, float right, float deltaTime);
-	DirectX::XMFLOAT3 getPosition();
-	Sei::Camera& getCamera();
+	bool Initialize(Sei::Render::RenderQueue& renderQueue, const DirectX::XMFLOAT3& spawnPosition);
+	void Submit();
+	void Shutdown();
+	void Update(float deltaTime);
+	void Move(float forward, float right, float deltaTime);
+	DirectX::XMFLOAT3 GetPosition();
+	Sei::Camera& GetCamera();
 }

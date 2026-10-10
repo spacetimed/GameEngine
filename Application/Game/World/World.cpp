@@ -14,12 +14,13 @@ namespace Game::World
 {
 	namespace
 	{
-		Sei::SceneDataLoader::SceneData WorldScene;
+		Sei::SceneDataLoader::SceneData worldScene;
 		Sei::Shader worldShader;
+		Sei::Render::RenderQueue* queue = nullptr;
 		std::unordered_set<std::string> overlappingObjects;
 	}
 
-	bool CreateWorldFromMap(const std::filesystem::path& path)
+	bool Initialize(Sei::Render::RenderQueue& renderQueue, const std::filesystem::path& path)
 	{
 		std::string error;
 
@@ -27,45 +28,50 @@ namespace Game::World
 		Sei::SceneDataLoader::SceneData loaded;
 		if (!Sei::SceneDataLoader::loadSceneData(path, loaded, error))
 		{
-			std::cerr << "scene loading failed: " + error;
-			return 0;
+			std::cerr << "scene loading failed: " << error << '\n';
+			return false;
 		}
 
 		// All objects currently use the same basic lighting shader.
 		Sei::Shader shader;
 		if (!Sei::Render::CreateShader("Resources/Shaders/Solid.hlsl", shader, error))
+		{
+			std::cerr << "world shader loading failed: " << error << '\n';
 			return false;
-		WorldScene = std::move(loaded);
+		}
+		if (queue) queue->items.clear();
+		worldScene = std::move(loaded);
 		worldShader = std::move(shader);
 		overlappingObjects.clear();
+		queue = &renderQueue;
 
-		std::cout << "world scene loaded!: " << WorldScene.objects.size() << " objects\n";
+		std::cout << "world scene loaded!: " << worldScene.objects.size() << " objects\n";
 
-		for (const auto& [name, object] : WorldScene.objects)
+		for (const auto& [name, object] : worldScene.objects)
 			std::cout << "  " << name << ": " << object.mesh.indexCount / 3 << " triangles\n";
 
 		return true;
 	}
 
-	void Draw(const Sei::Camera& camera)
+	void Submit()
 	{
-		for (const auto& [name, object] : WorldScene.objects)
-			Sei::Render::Draw(object.mesh, worldShader, camera, object.transform);
+		for (const auto& [name, object] : worldScene.objects)
+			queue->items.push_back({ &object.mesh, &worldShader, object.transform });
 	}
 
 	DirectX::XMFLOAT3 GetSpawnPosition()
 	{
-		const auto floor = WorldScene.objects.find("Floor");
-		if (floor == WorldScene.objects.end()) return { 0.0f, 2.0f, 0.0f };
+		const auto floor = worldScene.objects.find("Floor");
+		if (floor == worldScene.objects.end()) return { 0.0f, 2.0f, 0.0f };
 		const auto& t = floor->second.transform;
 		return { t._41, t._42 + 2.0f, t._43 - 6.0f }; // Spawn away from the central pillar.
 	}
 
-	Sei::Player::Collision::Hit sweep(const Sei::Player::Collision::AABB& playerBox,
+	Sei::Player::Collision::Hit Sweep(const Sei::Player::Collision::AABB& playerBox,
 		const DirectX::XMFLOAT3& displacement)
 	{
 		Sei::Player::Collision::Hit closest;
-		for (const auto& [name, object] : WorldScene.objects)
+		for (const auto& [name, object] : worldScene.objects)
 		{
 			const auto box = Sei::Player::Collision::transform(
 				{ object.mesh.boundsMin, object.mesh.boundsMax }, object.transform);
@@ -75,9 +81,9 @@ namespace Game::World
 		return closest;
 	}
 
-	void checkOverlaps(const Sei::Player::Collision::AABB& playerBox)
+	void CheckOverlaps(const Sei::Player::Collision::AABB& playerBox)
 	{
-		for (const auto& [name, object] : WorldScene.objects)
+		for (const auto& [name, object] : worldScene.objects)
 		{
 			const auto box = Sei::Player::Collision::transform(
 				{ object.mesh.boundsMin, object.mesh.boundsMax }, object.transform);
@@ -90,9 +96,11 @@ namespace Game::World
 		}
 	}
 
-	void Clear()
+	void Shutdown()
 	{
-		WorldScene.objects.clear();
+		if (queue) queue->items.clear();
+		queue = nullptr;
+		worldScene.objects.clear();
 		worldShader = {};
 		overlappingObjects.clear();
 	}
