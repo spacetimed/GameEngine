@@ -6,7 +6,9 @@
 
 namespace Game::Player
 {
-	void spawn(float x, float y, float z);
+	bool spawn(float x, float y, float z);
+	void draw();
+	void clear();
 	void update(float deltaTime);
 	void move(float forward, float right, float deltaTime);
 	DirectX::XMFLOAT3 getPosition();

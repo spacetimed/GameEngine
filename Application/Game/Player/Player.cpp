@@ -1,8 +1,12 @@
 #include "Player.h"
 #include "../../Sei/Input/Input.h"
 #include "../../Sei/Window/Window.h"
+#include "../../Sei/AssetLoader/SceneDataLoader.h"
+#include "../../Sei/Render/Render.h"
+#include "../../Sei/Player/View.h"
 
 #include <cmath>
+#include <iostream>
 
 namespace Game::Player
 {
@@ -17,14 +21,37 @@ namespace Game::Player
 		DirectX::XMFLOAT3 position = {}; // Feet position.
 		DirectX::XMFLOAT3 velocity = {};
 		Sei::Camera camera;
+		Sei::SceneDataLoader::SceneObject ModelObject;
+		Sei::Shader modelShader;
 	}
 
-	void spawn(float x, float y, float z)
+	bool spawn(float x, float y, float z)
 	{
+		std::string error;
+
 		position = { x, y, z };
 		velocity = {};
-		camera.SetPosition(x, y + eyeHeight, z);
 		camera.SetRotation(0.0f, 0.0f);
+		Sei::Player::View::update(camera, position, eyeHeight);
+
+		// Load once; respawning reuses the same GPU mesh and shader.
+		if (!ModelObject.mesh.vertexBuffer)
+		{
+			Sei::SceneDataLoader::SceneData ModelData;
+			if (!Sei::SceneDataLoader::loadSceneData("Resources/Models/player.glb", ModelData, error) ||
+				!Sei::Render::CreateShader("Resources/Shaders/Solid.hlsl", modelShader, error))
+			{
+				std::cerr << "could not load player model: " << error << '\n';
+				return false;
+			}
+			const auto model = ModelData.objects.find("Player");
+			if (model == ModelData.objects.end())
+			{
+				std::cerr << "player.glb contains no object named Player\n";
+				return false;
+			}
+			ModelObject = model->second; // object name in Blender: Player
+		}
 
 		RECT client = {};
 		GetClientRect(Sei::Window::GetHandle(), &client);
@@ -33,6 +60,25 @@ namespace Game::Player
 		const float horizontalFov = DirectX::XMConvertToRadians(103.0f);
 		const float verticalFov = 2.0f * std::atan(std::tan(horizontalFov * 0.5f) / aspect);
 		camera.SetPerspective(verticalFov, aspect, 0.1f, 100.0f);
+		return true;
+	}
+
+	void draw()
+	{
+		if (!Sei::Player::View::isThirdPerson || !ModelObject.mesh.vertexBuffer) return;
+		const auto forward = camera.GetForward();
+		const float yaw = std::atan2(forward.x, forward.z);
+		DirectX::XMFLOAT4X4 transform;
+		DirectX::XMStoreFloat4x4(&transform, DirectX::XMLoadFloat4x4(&ModelObject.transform) *
+			DirectX::XMMatrixRotationY(yaw) *
+			DirectX::XMMatrixTranslation(position.x, position.y, position.z));
+		Sei::Render::Draw(ModelObject.mesh, modelShader, camera, transform);
+	}
+
+	void clear()
+	{
+		ModelObject = {};
+		modelShader = {};
 	}
 
 	void update(float deltaTime)
@@ -65,7 +111,7 @@ namespace Game::Player
 		}
 		position.x += velocity.x * deltaTime;
 		position.z += velocity.z * deltaTime;
-		camera.SetPosition(position.x, position.y + eyeHeight, position.z);
+		Sei::Player::View::update(camera, position, eyeHeight);
 	}
 	DirectX::XMFLOAT3 getPosition()
 	{

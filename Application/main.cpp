@@ -4,6 +4,7 @@
 #include "Sei/Input/Input.h"
 #include "Sei/Input/Keybinds.h"
 #include "Sei/HUD/HUD.h"
+#include "Sei/Player/View.h"
 
 #include "Game/World/World.h"
 #include "Game/Player/Player.h"
@@ -38,7 +39,14 @@ int main()
 
 	// (temp) spawn on floor
 	const auto spawn = Game::World::GetSpawnPosition();
-	Game::Player::spawn(spawn.x, spawn.y, spawn.z);
+	if (!Game::Player::spawn(spawn.x, spawn.y, spawn.z))
+	{
+		Game::Player::clear();
+		Game::World::Clear();
+		Sei::Render::Shutdown();
+		Sei::Window::Destroy();
+		return 1;
+	}
 
 	RECT client = {};
 	GetClientRect(Sei::Window::GetHandle(), &client);
@@ -47,6 +55,7 @@ int main()
 	{
 		std::cerr << "Could not initialize raw mouse input.\n";
 		Sei::Input::Shutdown();
+		Game::Player::clear();
 		Game::World::Clear();
 		Sei::Render::Shutdown();
 		Sei::Window::Destroy();
@@ -64,12 +73,14 @@ int main()
 	fpsOverlay.items.push_back({ "fps", &currFps });
 	fpsOverlay.items.push_back({ "frametime", &currFrametime });
 	fpsOverlay.items.push_back({ "resolution", &resolution });
+	fpsOverlay.items.push_back({ "view", &Sei::Player::View::mode });
 
 	// bind all hud elements onto renderer (todo: refactor all rendering to render.cpp)
 	Sei::HUD::BindSection(fpsOverlay);
 
 	// keybinds
 	Sei::Keybinds::Bind(VK_F2, Sei::Render::ToggleWireframe);
+	Sei::Keybinds::Bind(VK_F3, Sei::Player::View::toggle);
 	Sei::Keybinds::Bind(VK_OEM_3, [&fpsOverlay] { fpsOverlay.ToggleVisibility(); });
 
 	float fpsElapsed = 0.0f;
@@ -104,9 +115,11 @@ int main()
 
 		Sei::Render::BeginFrame();
 		Game::World::Draw(Game::Player::getCamera());
+		Game::Player::draw();
 		Sei::Render::EndFrame();
 	}
 
+	Game::Player::clear();
 	Game::World::Clear();
 	Sei::Render::Shutdown();
 	Sei::Window::Destroy();
