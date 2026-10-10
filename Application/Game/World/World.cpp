@@ -19,17 +19,18 @@ namespace Game::World
 		std::unordered_set<std::string> overlappingObjects;
 	}
 
-	bool LoadMap(const std::filesystem::path& path, std::string& error)
+	bool CreateWorldFromMap(const std::filesystem::path& path)
 	{
-		error.clear();
+		std::string error;
 
 		// load map scene objects into vertex/index buffers
 		Sei::SceneDataLoader::SceneData loaded;
 		if (!Sei::SceneDataLoader::loadSceneData(path, loaded, error))
 		{
-			error = "scene loading failed: " + error; // propagate errors
-			return false;
+			std::cerr << "scene loading failed: " + error;
+			return 0;
 		}
+
 		// All objects currently use the same basic lighting shader.
 		Sei::Shader shader;
 		if (!Sei::Render::CreateShader("Resources/Shaders/Solid.hlsl", shader, error))

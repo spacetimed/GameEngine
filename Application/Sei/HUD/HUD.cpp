@@ -56,7 +56,7 @@ namespace Sei::HUD
             reinterpret_cast<IUnknown**>(writeFactory.GetAddressOf())));
     }
 
-    void BindSection(const Section& section)
+    void BindToRender(const Section& section)
     {
         for (const auto* existing : sections)
             if (existing == &section) return;

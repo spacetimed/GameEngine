@@ -8,7 +8,7 @@
 
 namespace Game::World
 {
-	bool LoadMap(const std::filesystem::path& path, std::string& error);
+	bool CreateWorldFromMap(const std::filesystem::path& path);
 	void Draw(const Sei::Camera& camera);
 	DirectX::XMFLOAT3 GetSpawnPosition();
 	void Clear();
