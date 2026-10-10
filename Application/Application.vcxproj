@@ -142,7 +142,8 @@
     <ClCompile Include="Game\World\World.cpp" />
     <ClCompile Include="Game\Player\Player.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Sei\Player\View.cpp" />
+    <ClCompile Include="Sei\Collision\Collision.cpp" />
+    <ClCompile Include="Sei\Collision\View.cpp" />
     <ClCompile Include="Sei\Input\Keybinds.cpp" />
     <ClCompile Include="Sei\HUD\HUD.cpp" />
     <ClCompile Include="Sei\Camera\Camera.cpp" />
@@ -155,13 +156,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Game\Player\Player.h" />
-    <ClInclude Include="Sei\Player\View.h" />
+    <ClInclude Include="Sei\Collision\View.h" />
     <ClInclude Include="Game\World\World.h" />
     <ClInclude Include="Sei\AssetLoader\OBJLoader.h" />
     <ClInclude Include="Sei\AssetLoader\SceneDataLoader.h" />
     <ClInclude Include="Sei\HUD\Section.h" />
     <ClInclude Include="Sei\HUD\HUD.h" />
-    <ClInclude Include="Sei\Player\Collision.h" />
+    <ClInclude Include="Sei\Collision\Collision.h" />
     <ClInclude Include="ThirdParty\cgltf\cgltf.h" />
     <ClInclude Include="Sei\Camera\Camera.h" />
     <ClInclude Include="Sei\Camera\FreeCameraController.h" />
@@ -175,6 +176,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\Solid.hlsl" />
+    <None Include="Resources\Shaders\DebugBox.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

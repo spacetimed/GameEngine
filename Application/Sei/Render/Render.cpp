@@ -8,6 +8,7 @@
 #include <iostream>
 #include <utility> // for std::move
 #include <cstddef>
+#include <algorithm>
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "d3dcompiler.lib")
@@ -26,6 +27,10 @@ namespace
     ComPtr<ID3D11RasterizerState> rasterizer;
     ComPtr<ID3D11RasterizerState> wireframeRasterizer;
     bool wireframe = false;
+    Sei::Mesh boxMesh;
+    Sei::Shader boxShader;
+    ComPtr<ID3D11BlendState> boxBlend;
+    ComPtr<ID3D11DepthStencilState> boxDepth;
     D3D11_VIEWPORT viewport = {};
     struct TransformConstants
     {
@@ -123,6 +128,35 @@ namespace Sei::Render
             return false;
         }
 
+        // Eight corners and twelve edges; no diagonals across the faces.
+        MeshData box;
+        box.vertices = {
+            {0,0,0,0,0,0}, {1,0,0,0,0,0}, {1,1,0,0,0,0}, {0,1,0,0,0,0},
+            {0,0,1,0,0,0}, {1,0,1,0,0,0}, {1,1,1,0,0,0}, {0,1,1,0,0,0}
+        };
+        box.indices = {0,1, 1,2, 2,3, 3,0, 4,5, 5,6, 6,7, 7,4, 0,4, 1,5, 2,6, 3,7};
+        std::string error;
+        if (!CreateMesh(box, boxMesh) || !CreateShader("Resources/Shaders/DebugBox.hlsl", boxShader, error))
+        {
+            std::cerr << "Could not initialize debug box: " << error << '\n';
+            return false;
+        }
+        D3D11_BLEND_DESC blend = {};
+        auto& b = blend.RenderTarget[0];
+        b.BlendEnable = TRUE;
+        b.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+        b.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+        b.BlendOp = D3D11_BLEND_OP_ADD;
+        b.SrcBlendAlpha = D3D11_BLEND_ONE;
+        b.DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+        b.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+        b.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+        if (FAILED(device->CreateBlendState(&blend, boxBlend.GetAddressOf()))) return false;
+        // Debug lines show through the capsule, without changing the depth buffer.
+        D3D11_DEPTH_STENCIL_DESC depth = {};
+        depth.DepthFunc = D3D11_COMPARISON_ALWAYS;
+        if (FAILED(device->CreateDepthStencilState(&depth, boxDepth.GetAddressOf()))) return false;
+
         LogDebug();
 
         return true;
@@ -161,7 +195,7 @@ namespace Sei::Render
     }
 
     void Draw(const Mesh& mesh, const Shader& shader, const DirectX::XMMATRIX& worldViewProjection,
-              const DirectX::XMMATRIX& world)
+              const DirectX::XMMATRIX& world, D3D11_PRIMITIVE_TOPOLOGY topology)
     {
         // HLSL matrices use column-major storage by default.
         TransformConstants transform;
@@ -182,8 +216,26 @@ namespace Sei::Render
         ID3D11Buffer* vertices = mesh.vertexBuffer.Get();
         context->IASetVertexBuffers(0, 1, &vertices, &stride, &offset);
         context->IASetIndexBuffer(mesh.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-        context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        context->IASetPrimitiveTopology(topology);
         context->DrawIndexed(mesh.indexCount, 0, 0);
+    }
+
+    void DrawBox(const DirectX::XMFLOAT3& min, const DirectX::XMFLOAT3& max, const Camera& camera)
+    {
+        ComPtr<ID3D11BlendState> previousBlend;
+        ComPtr<ID3D11DepthStencilState> previousDepth;
+        float factors[4];
+        UINT mask, stencil;
+        context->OMGetBlendState(previousBlend.GetAddressOf(), factors, &mask);
+        context->OMGetDepthStencilState(previousDepth.GetAddressOf(), &stencil);
+        context->OMSetBlendState(boxBlend.Get(), nullptr, 0xffffffff);
+        context->OMSetDepthStencilState(boxDepth.Get(), 0);
+        const auto world = DirectX::XMMatrixScaling(max.x-min.x, max.y-min.y, max.z-min.z) *
+            DirectX::XMMatrixTranslation(min.x, min.y, min.z);
+        Draw(boxMesh, boxShader, world * camera.GetViewMatrix() * camera.GetProjectionMatrix(),
+            world, D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+        context->OMSetBlendState(previousBlend.Get(), factors, mask);
+        context->OMSetDepthStencilState(previousDepth.Get(), stencil);
     }
 
     void ToggleWireframe()
@@ -212,6 +264,10 @@ namespace Sei::Render
         // release/cleanup
         if (context) context->ClearState();
         HUD::Shutdown();
+        boxMesh = {};
+        boxShader = {};
+        boxBlend.Reset();
+        boxDepth.Reset();
         rasterizer.Reset();
         wireframeRasterizer.Reset();
         wireframe = false;
@@ -316,6 +372,18 @@ namespace Sei::Render
             return false;
 
         Mesh mesh;
+
+        // Retain local-space bounds before uploading and discarding CPU geometry.
+        mesh.boundsMin = mesh.boundsMax = { data.vertices[0].x, data.vertices[0].y, data.vertices[0].z };
+        for (const auto& vertex : data.vertices)
+        {
+            mesh.boundsMin.x = (std::min)(mesh.boundsMin.x, vertex.x);
+            mesh.boundsMin.y = (std::min)(mesh.boundsMin.y, vertex.y);
+            mesh.boundsMin.z = (std::min)(mesh.boundsMin.z, vertex.z);
+            mesh.boundsMax.x = (std::max)(mesh.boundsMax.x, vertex.x);
+            mesh.boundsMax.y = (std::max)(mesh.boundsMax.y, vertex.y);
+            mesh.boundsMax.z = (std::max)(mesh.boundsMax.z, vertex.z);
+        }
 
         // Upload vertices.
         D3D11_BUFFER_DESC vertexDesc = {};

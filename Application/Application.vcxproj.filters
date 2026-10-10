@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Source Files">
@@ -18,7 +18,10 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Sei\Player\View.cpp">
+    <ClCompile Include="Sei\Collision\Collision.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Sei\Collision\View.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Game\Player\Player.cpp">
@@ -101,7 +104,7 @@
     <ClInclude Include="Game\Player\Player.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Sei\Player\View.h">
+    <ClInclude Include="Sei\Collision\View.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Game\World\World.h">
@@ -110,6 +113,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\Solid.hlsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Resources\Shaders\DebugBox.hlsl">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

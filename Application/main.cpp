@@ -4,7 +4,7 @@
 #include "Sei/Input/Input.h"
 #include "Sei/Input/Keybinds.h"
 #include "Sei/HUD/HUD.h"
-#include "Sei/Player/View.h"
+#include "Sei/Collision/View.h"
 
 #include "Game/World/World.h"
 #include "Game/Player/Player.h"

@@ -17,7 +17,9 @@ namespace Sei::Render
 	void ToggleWireframe();
 	void EndFrame();
 	void Draw(const Mesh& mesh, const Shader& shader, const DirectX::XMMATRIX& worldViewProjection,
-		const DirectX::XMMATRIX& world = DirectX::XMMatrixIdentity());
+		const DirectX::XMMATRIX& world = DirectX::XMMatrixIdentity(),
+		D3D11_PRIMITIVE_TOPOLOGY topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	void DrawBox(const DirectX::XMFLOAT3& min, const DirectX::XMFLOAT3& max, const Camera& camera);
 	void Draw(const Mesh& mesh, const Shader& shader, const Camera& camera);
 	void Draw(const Mesh& mesh, const Shader& shader, const Camera& camera, const DirectX::XMFLOAT4X4& transform);
 	void Shutdown();
